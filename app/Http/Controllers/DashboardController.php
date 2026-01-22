@@ -17,6 +17,46 @@ class DashboardController extends Controller
     }
 
     /**
+     * Get kelas dari API eksternal
+     */
+    public function getKelas()
+    {
+        try {
+            $token = JWTHelper::generateToken([]);
+            
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                    'Content-Type' => 'application/json',
+                ])
+                ->post('http://103.23.103.43/WS_CLIENT/Batam_Hidayatullah/index.php', [
+                    'token' => $token,
+                    'method' => 'getKelas'
+                ]);
+
+            if ($response->successful()) {
+                $responseData = $response->json();
+                if (isset($responseData['status']) && $responseData['status'] == 200) {
+                    return response()->json([
+                        'success' => true,
+                        'data' => $responseData['data'] ?? []
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'success' => false,
+                'data' => []
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => []
+            ]);
+        }
+    }
+
+    /**
      * Fetch data pembayaran dari API eksternal
      */
     public function fetchPembayaran(Request $request)
@@ -29,8 +69,15 @@ class DashboardController extends Controller
             if ($request->filled('tahun_akademik')) {
                 $payload['tahun_akademik'] = $request->tahun_akademik;
             }
+            // Mapping: kelas (jenjang) = jenjang di API
             if ($request->filled('kelas')) {
-                $payload['kelas'] = $request->kelas;
+                $payload['kelas'] = $request->kelas; // jenjang
+            }
+            if ($request->filled('unit')) {
+                $payload['unit'] = $request->unit;
+            }
+            if ($request->filled('kelompok')) {
+                $payload['kelompok'] = $request->kelompok;
             }
             if ($request->filled('tahun_angkatan')) {
                 $payload['tahun_angkatan'] = $request->tahun_angkatan;
