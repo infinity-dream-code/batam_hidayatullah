@@ -1,0 +1,196 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use App\Helpers\JWTHelper;
+
+class DashboardController extends Controller
+{
+    /**
+     * Tampilkan halaman rekap pembayaran
+     */
+    public function rekapPembayaran()
+    {
+        return view('dashboard.rekap-pembayaran');
+    }
+
+    /**
+     * Fetch data pembayaran dari API eksternal
+     */
+    public function fetchPembayaran(Request $request)
+    {
+        try {
+            // Generate JWT token
+            $payload = [];
+            
+            // Tambahkan filter jika ada (sesuai dengan parameter WS)
+            if ($request->filled('tahun_akademik')) {
+                $payload['tahun_akademik'] = $request->tahun_akademik;
+            }
+            if ($request->filled('kelas')) {
+                $payload['kelas'] = $request->kelas;
+            }
+            if ($request->filled('tahun_angkatan')) {
+                $payload['tahun_angkatan'] = $request->tahun_angkatan;
+            }
+            if ($request->filled('nis')) {
+                $payload['nis'] = $request->nis;
+            }
+            // Parameter tanggal sesuai dengan WS: tanggal_from & tanggal_to
+            if ($request->filled('dari_tanggal')) {
+                $payload['tanggal_from'] = $request->dari_tanggal; // Format: YYYY-MM-DD
+            }
+            if ($request->filled('sampai_tanggal')) {
+                $payload['tanggal_to'] = $request->sampai_tanggal; // Format: YYYY-MM-DD
+            }
+            if ($request->filled('kode_rekening')) {
+                $payload['kode_rekening'] = $request->kode_rekening;
+            }
+            if ($request->filled('bank')) {
+                $payload['bank'] = $request->bank;
+            }
+            if ($request->filled('nama_tagihan')) {
+                $payload['nama_tagihan'] = $request->nama_tagihan;
+            }
+
+            $token = JWTHelper::generateToken($payload);
+
+            // Hit API eksternal - kirim JWT di body
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                    'Content-Type' => 'application/json',
+                ])
+                ->post('http://103.23.103.43/WS_CLIENT/Batam_Hidayatullah/index.php', [
+                    'token' => $token,
+                    'method' => 'getReport'
+                ]);
+
+            if ($response->successful()) {
+                $responseData = $response->json();
+                
+                // WS return format: {"status": 200, "data": [...]}
+                if (isset($responseData['status']) && $responseData['status'] == 200) {
+                    $data = $responseData['data'] ?? [];
+                    
+                    return response()->json([
+                        'success' => true,
+                        'data' => $data
+                    ]);
+                } else {
+                    $message = $responseData['message'] ?? 'Unknown error';
+                    return response()->json([
+                        'success' => false,
+                        'message' => $message
+                    ], 500);
+                }
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mengambil data dari API. Status: ' . $response->status()
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Fetch data dari API untuk cetak
+     */
+    private function fetchDataForPrint(Request $request)
+    {
+        $payload = [];
+        
+        if ($request->filled('tahun_akademik')) {
+            $payload['tahun_akademik'] = $request->tahun_akademik;
+        }
+        if ($request->filled('kelas')) {
+            $payload['kelas'] = $request->kelas;
+        }
+        if ($request->filled('tahun_angkatan')) {
+            $payload['tahun_angkatan'] = $request->tahun_angkatan;
+        }
+        if ($request->filled('nis')) {
+            $payload['nis'] = $request->nis;
+        }
+        if ($request->filled('dari_tanggal')) {
+            $payload['tanggal_from'] = $request->dari_tanggal;
+        }
+        if ($request->filled('sampai_tanggal')) {
+            $payload['tanggal_to'] = $request->sampai_tanggal;
+        }
+
+        $token = JWTHelper::generateToken($payload);
+        
+        $response = Http::timeout(30)
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type' => 'application/json',
+            ])
+            ->post('http://103.23.103.43/WS_CLIENT/Batam_Hidayatullah/index.php', [
+                'token' => $token,
+                'method' => 'getReport'
+            ]);
+
+        if ($response->successful()) {
+            $responseData = $response->json();
+            if (isset($responseData['status']) && $responseData['status'] == 200) {
+                return $responseData['data'] ?? [];
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Cetak Rekap PDF
+     */
+    public function cetakRekapPDF(Request $request)
+    {
+        $data = $this->fetchDataForPrint($request);
+        $filters = $request->all();
+        
+        return view('cetak.rekap-pdf', compact('data', 'filters'));
+    }
+
+    /**
+     * Cetak Rekap Excel
+     */
+    public function cetakRekapExcel(Request $request)
+    {
+        $data = $this->fetchDataForPrint($request);
+        $filters = $request->all();
+        
+        return view('cetak.rekap-excel', compact('data', 'filters'));
+    }
+
+    /**
+     * Cetak per NIS PDF
+     */
+    public function cetakNISPDF(Request $request)
+    {
+        $data = $this->fetchDataForPrint($request);
+        $filters = $request->all();
+        
+        return view('cetak.nis-pdf', compact('data', 'filters'));
+    }
+
+    /**
+     * Cetak per NIS Excel
+     */
+    public function cetakNISExcel(Request $request)
+    {
+        $data = $this->fetchDataForPrint($request);
+        $filters = $request->all();
+        
+        return view('cetak.nis-excel', compact('data', 'filters'));
+    }
+}
+
