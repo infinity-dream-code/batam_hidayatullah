@@ -69,9 +69,9 @@ class DashboardController extends Controller
             if ($request->filled('tahun_akademik')) {
                 $payload['tahun_akademik'] = $request->tahun_akademik;
             }
-            // Mapping: kelas (jenjang) = jenjang di API
+            // Mapping: kelas filter = kelas di API getReport
             if ($request->filled('kelas')) {
-                $payload['kelas'] = $request->kelas; // jenjang
+                $payload['kelas'] = $request->kelas;
             }
             if ($request->filled('unit')) {
                 $payload['unit'] = $request->unit;
@@ -158,8 +158,15 @@ class DashboardController extends Controller
         if ($request->filled('tahun_akademik')) {
             $payload['tahun_akademik'] = $request->tahun_akademik;
         }
+        // Mapping: kelas (jenjang) = jenjang di API
         if ($request->filled('kelas')) {
-            $payload['kelas'] = $request->kelas;
+            $payload['kelas'] = $request->kelas; // jenjang
+        }
+        if ($request->filled('unit')) {
+            $payload['unit'] = $request->unit;
+        }
+        if ($request->filled('kelompok')) {
+            $payload['kelompok'] = $request->kelompok;
         }
         if ($request->filled('tahun_angkatan')) {
             $payload['tahun_angkatan'] = $request->tahun_angkatan;
@@ -219,22 +226,30 @@ class DashboardController extends Controller
     }
 
     /**
-     * Cetak per NIS PDF
+     * Cetak per NIS PDF - Tampilkan semua siswa (tidak filter by NIS)
      */
     public function cetakNISPDF(Request $request)
     {
-        $data = $this->fetchDataForPrint($request);
+        // Hapus filter NIS untuk tampilkan semua siswa
+        $requestWithoutNIS = $request->duplicate();
+        $requestWithoutNIS->merge(['nis' => '']);
+        
+        $data = $this->fetchDataForPrint($requestWithoutNIS);
         $filters = $request->all();
         
         return view('cetak.nis-pdf', compact('data', 'filters'));
     }
 
     /**
-     * Cetak per NIS Excel
+     * Cetak per NIS Excel - Tampilkan semua siswa (tidak filter by NIS)
      */
     public function cetakNISExcel(Request $request)
     {
-        $data = $this->fetchDataForPrint($request);
+        // Hapus filter NIS untuk tampilkan semua siswa
+        $requestWithoutNIS = $request->duplicate();
+        $requestWithoutNIS->merge(['nis' => '']);
+        
+        $data = $this->fetchDataForPrint($requestWithoutNIS);
         $filters = $request->all();
         
         return view('cetak.nis-excel', compact('data', 'filters'));

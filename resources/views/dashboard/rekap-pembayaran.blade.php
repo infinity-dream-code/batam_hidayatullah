@@ -244,8 +244,22 @@
                 </select>
             </div>
             <div class="filter-row">
+                <div class="filter-label">Unit</div>
+                <select class="filter-input" id="unit">
+                    <option value="">Semua Unit</option>
+                </select>
+            </div>
+            <div class="filter-row">
                 <div class="filter-label">Kelas</div>
-                <input type="text" class="filter-input" id="kelas" readonly style="background: #f5f5f5; cursor: not-allowed;">
+                <select class="filter-input" id="kelas">
+                    <option value="">Semua Kelas</option>
+                </select>
+            </div>
+            <div class="filter-row">
+                <div class="filter-label">Kelompok</div>
+                <select class="filter-input" id="kelompok">
+                    <option value="">Semua Kelompok</option>
+                </select>
             </div>
             <div class="filter-row">
                 <div class="filter-label">Tahun Angkatan</div>
@@ -375,7 +389,7 @@
                     <th>No Pend</th>
                     <th>NIS</th>
                     <th>Nama</th>
-                    <th>Tanggal</th>
+                    <th>Tanggal Bayar</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
@@ -414,7 +428,9 @@
         // Get filter values
         const filters = {
             tahun_akademik: document.getElementById('tahun_akademik').value,
-            kelas: document.getElementById('kelas').value,
+            unit: document.getElementById('unit').value,
+            kelas: document.getElementById('kelas').value, // jenjang
+            kelompok: document.getElementById('kelompok').value,
             tahun_angkatan: document.getElementById('tahun_angkatan').value,
             nis: document.getElementById('nis').value,
             dari_tanggal: document.getElementById('dari_tanggal').value,
@@ -569,15 +585,12 @@
         window.open(url, '_blank');
     }
 
-    // Cetak per NIS function
+    // Cetak per NIS function - Tampilkan semua siswa
     function cetakPerNIS(format) {
         const filters = getFilters();
         
-        // Validasi NIS harus diisi
-        if (!filters.nis || filters.nis.trim() === '') {
-            alert('Silakan isi NIS terlebih dahulu untuk cetak per NIS');
-            return;
-        }
+        // Hapus filter NIS untuk tampilkan semua siswa
+        delete filters.nis;
         
         const queryString = new URLSearchParams(filters).toString();
         
@@ -588,11 +601,74 @@
         window.open(url, '_blank');
     }
 
+    // Load kelas dari API saat page load
+    async function loadKelas() {
+        try {
+            console.log('Loading kelas data...');
+            const response = await fetch('{{ route("api.get-kelas") }}');
+            const result = await response.json();
+
+            console.log('Kelas API Response:', result);
+
+            if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
+                const unitSelect = document.getElementById('unit');
+                const kelasSelect = document.getElementById('kelas');
+                const kelompokSelect = document.getElementById('kelompok');
+
+                // Clear existing options (keep "Semua" option)
+                unitSelect.innerHTML = '<option value="">Semua Unit</option>';
+                kelasSelect.innerHTML = '<option value="">Semua Kelas</option>';
+                kelompokSelect.innerHTML = '<option value="">Semua Kelompok</option>';
+
+                // Get unique values - API getKelas return: {unit, kelas, kelompok}
+                const uniqueUnits = [...new Set(result.data.map(item => item.unit).filter(Boolean))].sort();
+                const uniqueKelas = [...new Set(result.data.map(item => item.kelas).filter(Boolean))].sort();
+                const uniqueKelompok = [...new Set(result.data.map(item => item.kelompok).filter(Boolean))].sort();
+
+                console.log('Unique Units:', uniqueUnits);
+                console.log('Unique Kelas:', uniqueKelas);
+                console.log('Unique Kelompok:', uniqueKelompok);
+
+                // Populate Unit (unit = unit)
+                uniqueUnits.forEach(unit => {
+                    const option = document.createElement('option');
+                    option.value = unit;
+                    option.textContent = unit;
+                    unitSelect.appendChild(option);
+                });
+
+                // Populate Kelas (kelas = kelas dari API getKelas)
+                uniqueKelas.forEach(kelas => {
+                    const option = document.createElement('option');
+                    option.value = kelas;
+                    option.textContent = kelas;
+                    kelasSelect.appendChild(option);
+                });
+
+                // Populate Kelompok (kelompok = kelompok)
+                uniqueKelompok.forEach(kelompok => {
+                    const option = document.createElement('option');
+                    option.value = kelompok;
+                    option.textContent = kelompok;
+                    kelompokSelect.appendChild(option);
+                });
+
+                console.log('Kelas data loaded successfully!');
+            } else {
+                console.warn('No kelas data received or empty');
+            }
+        } catch (error) {
+            console.error('Error loading kelas:', error);
+        }
+    }
+
     // Get filters helper
     function getFilters() {
         return {
             tahun_akademik: document.getElementById('tahun_akademik').value,
-            kelas: document.getElementById('kelas').value,
+            unit: document.getElementById('unit').value,
+            kelas: document.getElementById('kelas').value, // jenjang
+            kelompok: document.getElementById('kelompok').value,
             tahun_angkatan: document.getElementById('tahun_angkatan').value,
             nis: document.getElementById('nis').value,
             dari_tanggal: document.getElementById('dari_tanggal').value,
@@ -603,10 +679,9 @@
         };
     }
 
-    // Auto load on page load
+    // Auto load kelas saat page load (setelah login/halaman rekap pembayaran)
     window.addEventListener('load', function() {
-        // Uncomment jika mau auto load data saat page load
-        // fetchData();
+        loadKelas();
     });
 </script>
 @endsection

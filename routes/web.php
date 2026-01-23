@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
     
     Route::get('/rekap-pembayaran', [DashboardController::class, 'rekapPembayaran'])->name('dashboard.rekap-pembayaran');
     Route::post('/api/fetch-pembayaran', [DashboardController::class, 'fetchPembayaran'])->name('api.fetch-pembayaran');
+    Route::get('/api/get-kelas', [DashboardController::class, 'getKelas'])->name('api.get-kelas');
     
     // Cetak Routes
     Route::get('/cetak/rekap/pdf', [DashboardController::class, 'cetakRekapPDF'])->name('cetak.rekap.pdf');

@@ -25,7 +25,7 @@
             <tr style="background-color: #f0f0f0; font-weight: bold;">
                 <td rowspan="2">No</td>
                 <td rowspan="2">Masuk</td>
-                <td rowspan="2">Kelas</td>
+                <td rowspan="2">Kelompok</td>
                 <td rowspan="2">NIS</td>
                 <td rowspan="2">Nama</td>
                 @php

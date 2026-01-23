@@ -90,7 +90,7 @@
             <tr>
                 <th rowspan="2">No</th>
                 <th rowspan="2">Masuk</th>
-                <th rowspan="2">Kelas</th>
+                <th rowspan="2">Kelompok</th>
                 <th rowspan="2">NIS</th>
                 <th rowspan="2">Nama</th>
                 @php
