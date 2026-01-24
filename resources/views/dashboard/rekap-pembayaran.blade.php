@@ -305,8 +305,20 @@
                 <div class="filter-label">Kode Rekening</div>
                 <select class="filter-input" id="kode_rekening">
                     <option value="">ALL</option>
-                    <option>SPP</option>
-                    <option>KOMITE</option>
+                    <option value="1">ATM</option>
+                    <option value="2">Teller</option>
+                    <option value="3">IBANK</option>
+                    <option value="4">EDC</option>
+                    <option value="5">MOBILE</option>
+                    <option value="1140000">Manual CASH</option>
+                    <option value="1140001">Manual BMI</option>
+                    <option value="1140002">Manual SALDO</option>
+                    <option value="1140003">Transfer Bank Lain</option>
+                    <option value="1140004">Transfer Bank BNI</option>
+                    <option value="1140005">Transfer Bank BRI</option>
+                    <option value="1200001">Loket Manual - Beasiswa</option>
+                    <option value="1200002">Loket Manual - Potongan</option>
+                    <option value="6">ALL BMI</option>
                 </select>
             </div>
             <div class="filter-row">
@@ -319,7 +331,9 @@
             </div>
             <div class="filter-row">
                 <div class="filter-label">Nama Tagihan</div>
-                <input type="text" class="filter-input" id="nama_tagihan" placeholder="">
+                <select class="filter-input" id="nama_tagihan">
+                    <option value="">Semua Tagihan</option>
+                </select>
             </div>
         </div>
 
@@ -425,19 +439,19 @@
         tableWrapper.style.display = 'none';
         loading.style.display = 'block';
 
-        // Get filter values
+        // Get filter values - sesuai dengan WS getReport
         const filters = {
             tahun_akademik: document.getElementById('tahun_akademik').value,
             unit: document.getElementById('unit').value,
-            kelas: document.getElementById('kelas').value, // jenjang
+            kelas: document.getElementById('kelas').value,
             kelompok: document.getElementById('kelompok').value,
             tahun_angkatan: document.getElementById('tahun_angkatan').value,
             nis: document.getElementById('nis').value,
             dari_tanggal: document.getElementById('dari_tanggal').value,
             sampai_tanggal: document.getElementById('sampai_tanggal').value,
-            kode_rekening: document.getElementById('kode_rekening').value,
+            akun: document.getElementById('nama_tagihan').value, // kirim sebagai 'akun' dengan value = kode dari getAkun
+            kode_rekening: document.getElementById('kode_rekening').value, // kirim sebagai 'bank' (FIDBANK) di backend
             bank: document.getElementById('bank').value,
-            nama_tagihan: document.getElementById('nama_tagihan').value,
         };
 
         try {
@@ -662,26 +676,59 @@
         }
     }
 
-    // Get filters helper
+    // Load akun dari API saat page load
+    async function loadAkun() {
+        try {
+            console.log('Loading akun data...');
+            const response = await fetch('{{ route("api.get-akun") }}');
+            const result = await response.json();
+
+            console.log('Akun API Response:', result);
+
+            if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
+                const namaTagihanSelect = document.getElementById('nama_tagihan');
+
+                // Clear existing options (keep "Semua" option)
+                namaTagihanSelect.innerHTML = '<option value="">Semua Tagihan</option>';
+
+                // Populate Nama Tagihan - value = kode, text = nama (sesuai WS: akun = kode)
+                result.data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.kode || ''; // Kirim kode ke API sebagai 'akun'
+                    option.textContent = item.nama || '-'; // Tampilkan nama di dropdown
+                    namaTagihanSelect.appendChild(option);
+                });
+
+                console.log('Akun data loaded successfully!');
+            } else {
+                console.warn('No akun data received or empty');
+            }
+        } catch (error) {
+            console.error('Error loading akun:', error);
+        }
+    }
+
+    // Get filters helper - sesuai dengan WS getReport
     function getFilters() {
         return {
             tahun_akademik: document.getElementById('tahun_akademik').value,
             unit: document.getElementById('unit').value,
-            kelas: document.getElementById('kelas').value, // jenjang
+            kelas: document.getElementById('kelas').value,
             kelompok: document.getElementById('kelompok').value,
             tahun_angkatan: document.getElementById('tahun_angkatan').value,
             nis: document.getElementById('nis').value,
             dari_tanggal: document.getElementById('dari_tanggal').value,
             sampai_tanggal: document.getElementById('sampai_tanggal').value,
-            kode_rekening: document.getElementById('kode_rekening').value,
+            akun: document.getElementById('nama_tagihan').value, // kirim sebagai 'akun' dengan value = kode dari getAkun
+            kode_rekening: document.getElementById('kode_rekening').value, // kirim sebagai 'bank' (FIDBANK) di backend
             bank: document.getElementById('bank').value,
-            nama_tagihan: document.getElementById('nama_tagihan').value,
         };
     }
 
-    // Auto load kelas saat page load (setelah login/halaman rekap pembayaran)
+    // Auto load kelas dan akun saat page load (setelah login/halaman rekap pembayaran)
     window.addEventListener('load', function() {
         loadKelas();
+        loadAkun();
     });
 </script>
 @endsection
