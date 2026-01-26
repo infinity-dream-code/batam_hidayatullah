@@ -302,8 +302,8 @@
                 <input type="date" class="filter-input" id="sampai_tanggal">
             </div>
             <div class="filter-row">
-                <div class="filter-label">Kode Rekening</div>
-                <select class="filter-input" id="kode_rekening">
+                <div class="filter-label">Bank</div>
+                <select class="filter-input" id="bank">
                     <option value="">ALL</option>
                     <option value="1">ATM</option>
                     <option value="2">Teller</option>
@@ -322,11 +322,9 @@
                 </select>
             </div>
             <div class="filter-row">
-                <div class="filter-label">Bank</div>
-                <select class="filter-input" id="bank">
-                    <option value="">Semua Bank</option>
-                    <option>BRI</option>
-                    <option>BNI</option>
+                <div class="filter-label">Kode Rekening</div>
+                <select class="filter-input" id="kode_rekening">
+                    <option value="">Semua Kode Rekening</option>
                 </select>
             </div>
             <div class="filter-row">
@@ -449,9 +447,9 @@
             nis: document.getElementById('nis').value,
             dari_tanggal: document.getElementById('dari_tanggal').value,
             sampai_tanggal: document.getElementById('sampai_tanggal').value,
-            akun: document.getElementById('nama_tagihan').value, // kirim sebagai 'akun' dengan value = kode dari getAkun
-            kode_rekening: document.getElementById('kode_rekening').value, // kirim sebagai 'bank' (FIDBANK) di backend
-            bank: document.getElementById('bank').value,
+            kode_rekening: document.getElementById('kode_rekening').value, // kirim sebagai 'akun' atau 'kode_akun' (dari getAkun)
+            nama_tagihan: document.getElementById('nama_tagihan').value, // kirim sebagai 'tagihan' atau 'kode_tagihan' (dari getTagihan)
+            bank: document.getElementById('bank').value, // kirim sebagai 'bank' (FIDBANK) - hardcode kode rekening
         };
 
         try {
@@ -676,7 +674,7 @@
         }
     }
 
-    // Load akun dari API saat page load
+    // Load akun dari API saat page load - untuk populate Kode Rekening
     async function loadAkun() {
         try {
             console.log('Loading akun data...');
@@ -686,17 +684,17 @@
             console.log('Akun API Response:', result);
 
             if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
-                const namaTagihanSelect = document.getElementById('nama_tagihan');
+                const kodeRekeningSelect = document.getElementById('kode_rekening');
 
                 // Clear existing options (keep "Semua" option)
-                namaTagihanSelect.innerHTML = '<option value="">Semua Tagihan</option>';
+                kodeRekeningSelect.innerHTML = '<option value="">Semua Kode Rekening</option>';
 
-                // Populate Nama Tagihan - value = kode, text = nama (sesuai WS: akun = kode)
+                // Populate Kode Rekening - value = kode akun (101, 102, dll), text = kode
                 result.data.forEach(item => {
                     const option = document.createElement('option');
-                    option.value = item.kode || ''; // Kirim kode ke API sebagai 'akun'
-                    option.textContent = item.nama || '-'; // Tampilkan nama di dropdown
-                    namaTagihanSelect.appendChild(option);
+                    option.value = item.kode || ''; // Kirim kode akun ke API sebagai 'akun' atau 'kode_akun'
+                    option.textContent = item.kode || '-'; // Tampilkan kode di dropdown
+                    kodeRekeningSelect.appendChild(option);
                 });
 
                 console.log('Akun data loaded successfully!');
@@ -705,6 +703,38 @@
             }
         } catch (error) {
             console.error('Error loading akun:', error);
+        }
+    }
+
+    // Load tagihan dari API saat page load - untuk populate Nama Tagihan
+    async function loadTagihan() {
+        try {
+            console.log('Loading tagihan data...');
+            const response = await fetch('{{ route("api.get-tagihan") }}');
+            const result = await response.json();
+
+            console.log('Tagihan API Response:', result);
+
+            if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
+                const namaTagihanSelect = document.getElementById('nama_tagihan');
+
+                // Clear existing options (keep "Semua" option)
+                namaTagihanSelect.innerHTML = '<option value="">Semua Tagihan</option>';
+
+                // Populate Nama Tagihan - value = nama tagihan (untuk filter WS), text = nama tagihan
+                result.data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.nama || ''; // Kirim nama tagihan ke API sebagai 'tagihan' (WS bisa match dengan BILLNM)
+                    option.textContent = item.nama || '-'; // Tampilkan nama tagihan di dropdown
+                    namaTagihanSelect.appendChild(option);
+                });
+
+                console.log('Tagihan data loaded successfully!');
+            } else {
+                console.warn('No tagihan data received or empty');
+            }
+        } catch (error) {
+            console.error('Error loading tagihan:', error);
         }
     }
 
@@ -719,16 +749,17 @@
             nis: document.getElementById('nis').value,
             dari_tanggal: document.getElementById('dari_tanggal').value,
             sampai_tanggal: document.getElementById('sampai_tanggal').value,
-            akun: document.getElementById('nama_tagihan').value, // kirim sebagai 'akun' dengan value = kode dari getAkun
-            kode_rekening: document.getElementById('kode_rekening').value, // kirim sebagai 'bank' (FIDBANK) di backend
-            bank: document.getElementById('bank').value,
+            kode_rekening: document.getElementById('kode_rekening').value, // kirim sebagai 'akun' atau 'kode_akun' (dari getAkun)
+            nama_tagihan: document.getElementById('nama_tagihan').value, // kirim sebagai 'tagihan' atau 'kode_tagihan' (dari getTagihan)
+            bank: document.getElementById('bank').value, // kirim sebagai 'bank' (FIDBANK) - hardcode kode rekening
         };
     }
 
-    // Auto load kelas dan akun saat page load (setelah login/halaman rekap pembayaran)
+    // Auto load kelas, akun, dan tagihan saat page load (setelah login/halaman rekap pembayaran)
     window.addEventListener('load', function() {
         loadKelas();
         loadAkun();
+        loadTagihan();
     });
 </script>
 @endsection
